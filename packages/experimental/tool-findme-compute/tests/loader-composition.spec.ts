@@ -72,7 +72,7 @@ function execute(ctx: Context, name: string, args: Record<string, unknown> = {})
 }
 
 describe('FindMe compute tools through a real Loader composition', () => {
-  it('registers five tools and authenticates a catalog request without exposing the token', async () => {
+  it('registers nine tools and authenticates a catalog request without exposing the token', async () => {
     const seen: { url: string; authorization: string | null }[] = []
     vi.stubGlobal('fetch', async (input: URL | RequestInfo, init?: RequestInit) => {
       seen.push({
@@ -88,9 +88,13 @@ describe('FindMe compute tools through a real Loader composition', () => {
 
     expect(ctx.tools.schemas().map(tool => tool.name).sort()).toEqual([
       'findme_compute_create_integration',
+      'findme_compute_create_logical_model',
       'findme_compute_discover_models',
       'findme_compute_list_adapters',
       'findme_compute_list_catalog',
+      'findme_compute_propose_routing_policy',
+      'findme_compute_query_invocation_trace',
+      'findme_compute_test_routing_policy',
       'findme_compute_verify_integration',
     ])
     const result = await execute(ctx, 'findme_compute_list_adapters', { modality: 'TEXT' })
