@@ -1,5 +1,5 @@
 ---
-description: "Five non-secret model-facing tools for administering the FindMe AI Hub compute registry from an explicit source-checkout composition."
+description: "Nine non-secret model-facing tools for administering the FindMe AI Hub compute registry from an explicit source-checkout composition."
 kind: "package-reference"
 ---
 
@@ -33,19 +33,23 @@ Mount the plugin beside `dsh-tools` in an explicit patch:
   name: '@deepseek-ai/dsh-experimental-tool-findme-compute'
   config:
     apiBaseUrl: 'http://127.0.0.1:8000'
-    adminToken: !!js process.env.FINDME_AI_HUB_ADMIN_TOKEN
+    adminToken: !!js process.env.FINDME_AI_HUB_AGENT_TOKEN
     requestTimeoutMs: 30000
 ```
 
 All three fields are required. `apiBaseUrl` accepts only HTTP or HTTPS and cannot contain credentials, a query, or a fragment. `requestTimeoutMs` bounds each request in addition to cancellation from the calling tool execution.
 
-The five tools are:
+The nine tools are:
 
 - `findme_compute_list_adapters`
 - `findme_compute_create_integration`
 - `findme_compute_verify_integration`
 - `findme_compute_discover_models`
 - `findme_compute_list_catalog`
+- `findme_compute_create_logical_model`
+- `findme_compute_propose_routing_policy`
+- `findme_compute_test_routing_policy`
+- `findme_compute_query_invocation_trace`
 
 The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-findme-compute) owns their complete schemas. Every success returns the API's `{ data, trace_id }` envelope as compact JSON. HTTP failures expose only the status, structured error code and message, and trace id; they never echo request headers or an unbounded response body.
 
@@ -54,7 +58,7 @@ The generated [tool catalog](../../../docs/tool-catalog.md#deepseek-aidsh-experi
 <a id="design"></a>
 ## Design
 
-The AI Hub API remains the authority for validation, persistence, Adapter selection, network access, and audit. This plugin is a thin Consumer that maps five model-facing operations to existing Admin API endpoints. It rejects common credential field names inside open non-secret configuration objects before sending a request and rejects credential material fields in successful API responses.
+The AI Hub API remains the authority for validation, persistence, Adapter selection, network access, and audit. This plugin is a thin Consumer that maps nine model-facing operations to existing Admin API endpoints. It rejects common credential field names inside open non-secret configuration objects before sending a request and rejects credential material fields in successful API responses.
 
 No runtime invariant companion is published. The plugin owns no state beyond immutable activation configuration, and the API owns every durable compute record.
 
@@ -67,7 +71,7 @@ No runtime invariant companion is published. The plugin owns no state beyond imm
 
 #### What the model sees
 
-The generated [five FindMe compute tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-findme-compute). Results are compact `{ data, trace_id }` JSON. The schemas omit credential write, rotation, and revocation operations.
+The generated [nine FindMe compute tool schemas](../../../docs/tool-catalog.md#deepseek-aidsh-experimental-tool-findme-compute). Results are compact `{ data, trace_id }` JSON. The schemas omit credential write, rotation, and revocation operations.
 
 #### Token effect
 
@@ -82,7 +86,7 @@ The schemas are prefix-stable while the plugin version and visibility are unchan
 <a id="known-limitations-and-deferred-work"></a>
 
 - **Credential administration requires a separate UI** — an Agent can create a draft but cannot supply the Provider secret needed for verification; the structured desktop form is intentionally the only credential path.
-- **No production invocation tools** — this package administers the M1 compute registry and does not expose project generation, routing policy, billing, or capability execution.
+- **No production invocation tools** — this package provides registry work, logical model drafts, ordered route proposals, trials and traces. The API rejects publication and credential changes made with the Agent token.
 - **No specialized Web card** — the Web Client uses the generic tool presentation until the Compute Center UI owns a dedicated view.
 
 <a id="dev-note"></a>

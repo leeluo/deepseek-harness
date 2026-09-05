@@ -1,5 +1,5 @@
 ---
-description: "在显式源码组合中管理 FindMe AI Hub 算力注册表的五个非敏感模型工具。"
+description: "在显式源码组合中管理 FindMe AI Hub 算力注册表的九个非敏感模型工具。"
 kind: "package-reference"
 ---
 
@@ -33,19 +33,23 @@ kind: "package-reference"
   name: '@deepseek-ai/dsh-experimental-tool-findme-compute'
   config:
     apiBaseUrl: 'http://127.0.0.1:8000'
-    adminToken: !!js process.env.FINDME_AI_HUB_ADMIN_TOKEN
+    adminToken: !!js process.env.FINDME_AI_HUB_AGENT_TOKEN
     requestTimeoutMs: 30000
 ```
 
 三个字段均为必填项。`apiBaseUrl` 只接受 HTTP 或 HTTPS，不能包含凭据、Query 或 Fragment。除调用方取消信号外，`requestTimeoutMs` 还会限制每次请求的最长时间。
 
-五个工具为：
+九个工具为：
 
 - `findme_compute_list_adapters`
 - `findme_compute_create_integration`
 - `findme_compute_verify_integration`
 - `findme_compute_discover_models`
 - `findme_compute_list_catalog`
+- `findme_compute_create_logical_model`
+- `findme_compute_propose_routing_policy`
+- `findme_compute_test_routing_policy`
+- `findme_compute_query_invocation_trace`
 
 完整 Schema 由生成的[工具目录](../../../docs/tool-catalog.zh.md#deepseek-aidsh-experimental-tool-findme-compute)维护。每次成功都以紧凑 JSON 返回 API 的 `{ data, trace_id }` Envelope。HTTP 失败只暴露状态、结构化错误 Code 与 Message，以及 Trace id；不会回显请求 Header 或无界响应正文。
 
@@ -54,7 +58,7 @@ kind: "package-reference"
 <a id="design"></a>
 ## 设计
 
-AI Hub API 仍然负责验证、持久化、Adapter 选择、网络访问与审计。该插件是轻量 Consumer，只把五个模型操作映射到已有 Admin API Endpoint。它会在发送请求前拒绝开放非敏感配置对象中的常见凭据字段名，也会拒绝成功 API 响应中的凭据材料字段。
+AI Hub API 仍然负责验证、持久化、Adapter 选择、网络访问与审计。该插件是轻量 Consumer，只把九个模型操作映射到已有 Admin API Endpoint。它会在发送请求前拒绝开放非敏感配置对象中的常见凭据字段名，也会拒绝成功 API 响应中的凭据材料字段。
 
 插件不发布 Runtime Invariant 配套模块。除激活时的不可变配置外，它不拥有状态；所有持久算力记录均由 API 管理。
 
@@ -67,7 +71,7 @@ AI Hub API 仍然负责验证、持久化、Adapter 选择、网络访问与审�
 
 #### What the model sees
 
-生成的[五个 FindMe 算力工具 Schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-experimental-tool-findme-compute)。结果是紧凑的 `{ data, trace_id }` JSON。Schema 不包含凭据写入、轮换或撤销操作。
+生成的[九个 FindMe 算力工具 Schema](../../../docs/tool-catalog.zh.md#deepseek-aidsh-experimental-tool-findme-compute)。结果是紧凑的 `{ data, trace_id }` JSON。Schema 不包含凭据写入、轮换或撤销操作。
 
 #### Token effect
 
@@ -82,7 +86,7 @@ AI Hub API 仍然负责验证、持久化、Adapter 选择、网络访问与审�
 <a id="known-limitations-and-deferred-work"></a>
 
 - **凭据管理需要独立 UI** — Agent 可以创建草稿，但不能提供验证所需的 Provider Secret；结构化桌面表单是唯一凭据入口。
-- **不提供生产调用工具** — 本包只管理 M1 算力注册表，不暴露项目生成、路由策略、计费或能力执行。
+- **不提供生产调用工具** — 本包提供登记、逻辑模型草稿、主备路由建议、试调用和 Trace；生产发布和凭据变更由 API 拒绝 Agent 权限令牌执行。
 - **没有专用 Web Card** — 在 Compute Center UI 提供专用视图前，Web Client 使用通用工具展示。
 
 <a id="dev-note"></a>

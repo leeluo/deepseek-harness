@@ -12,11 +12,13 @@ The desktop composition also needs to remain an extension of Harness rather than
 
 ## Decision
 
-The private `@deepseek-ai/dsh-experimental-tool-findme-compute` package registers five tools on `ctx.tools`. Each tool calls an existing FindMe AI Hub Admin API endpoint and returns its structured `{ data, trace_id }` success envelope. The API remains responsible for validation, Adapter execution, persistence, network policy, and audit.
+The private `@deepseek-ai/dsh-experimental-tool-findme-compute` package registers nine tools on `ctx.tools`. Each tool calls an existing FindMe AI Hub Admin API endpoint and returns its structured `{ data, trace_id }` success envelope. The API remains responsible for validation, Adapter execution, persistence, network policy, and audit.
 
 Provider credential write, rotation, and revocation are absent from the tool schemas. A dedicated structured desktop form sends Provider secrets directly to the API. Open non-secret configuration objects reject common credential field names before transport, and successful API envelopes containing credential-material fields are rejected before they become tool results. The Admin API bearer token is a required Host secret configuration value and is never included in a tool argument or result.
 
 The package is opt-in under `packages/experimental/` and is mounted only by the Family AI Hub source overlay. It makes no changes to the Agent loop or shipped default profiles.
+
+The shared `src/api-client.ts` supplies authentication and response validation for both structured Desktop Host requests and tools. An independent server-scoped Agent token permits logical model and routing drafts, trials and traces; the API rejects publication and credential mutations with that token.
 
 ## Alternatives considered
 
@@ -28,7 +30,7 @@ The package is opt-in under `packages/experimental/` and is mounted only by the 
 
 ## Testing
 
-A real Loader composition boots the plugin from `cordis.yml`, verifies the five registered schemas, executes an authenticated request, proves credential-like input is rejected before transport, and proves bounded API errors do not expose the Admin token or raw error fields.
+A real Loader composition boots the plugin from `cordis.yml`, verifies the nine registered schemas, executes an authenticated request, proves credential-like input is rejected before transport, and proves bounded API errors do not expose the Admin token or raw error fields.
 
 ## Consequences
 
