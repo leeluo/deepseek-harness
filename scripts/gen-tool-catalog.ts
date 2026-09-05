@@ -58,6 +58,7 @@ import * as ToolLsp from '@deepseek-ai/dsh-tool-lsp'
 import * as ToolSkill from '@deepseek-ai/dsh-tool-skill'
 import * as ToolSessionQuery from '@deepseek-ai/dsh-tool-session-query'
 import * as ToolTasks from '@deepseek-ai/dsh-tool-jobs'
+import * as ToolFindMeCompute from '@deepseek-ai/dsh-experimental-tool-findme-compute'
 import type TeamService from '@deepseek-ai/dsh-experimental-agent-team'
 import * as ToolTeam from '@deepseek-ai/dsh-experimental-tool-agent-team'
 import * as ToolTodo from '@deepseek-ai/dsh-tool-todo'
@@ -506,6 +507,22 @@ const TOOL_PACKAGES: ToolPackage[] = [
     },
     note:
       'The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers\' `ctx.jobs.start()`.',
+  },
+  {
+    pkg: '@deepseek-ai/dsh-experimental-tool-findme-compute',
+    dir: 'tool-findme-compute',
+    source: 'packages/experimental/tool-findme-compute/src/index.ts',
+    requires: ['ctx.tools', 'FindMe AI Hub Admin API at execution time'],
+    writes: ['tool/call', 'tool/result', 'AI Hub compute registry and audit through the Admin API'],
+    async mount(ctx) {
+      await ctx.plugin(ToolFindMeCompute, {
+        apiBaseUrl: 'http://127.0.0.1:8000',
+        adminToken: 'tool-catalog-placeholder',
+        requestTimeoutMs: 30_000,
+      })
+    },
+    note:
+      'Five opt-in FindMe AI Hub registry tools. Provider credentials are deliberately absent from every schema and use a separate structured desktop form-to-API path.',
   },
   {
     pkg: '@deepseek-ai/dsh-experimental-tool-agent-team',

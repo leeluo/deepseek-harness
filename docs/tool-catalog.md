@@ -36,6 +36,7 @@ This table connects model-visible tool names to the plugin package and service s
 | `@deepseek-ai/dsh-tool-subagent` | `list_subagent_models`, `subagent` | `ctx.tools`, `ctx.subagents`, `ctx.systemPrompt`, `ctx.llm for model discovery and selected-route validation` | `tool/call`, `tool/result`, `child session events through the chosen provider` | `subagent`, `subagent_fork` | The registered delegation name is the load-time `toolName` config (default `subagent`); the default schema above has model selection off, while the discovery schema is shown as the fixed companion available in an enabled Session. Web presets sample the Plugins preference for each new top-level Session and preserve that decision for its child Sessions; `subagent_fork` remains fixed-route. Each instance independently controls whether it reads model-selection settings and its background behavior through `modelSelectionSettings`, `backgroundMode`, and `enableRunInBackground`. |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`, `list_agents`, `send_message` | `ctx.tools`, `ctx.subagents`, `ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`, `tool/result`, `child session events through ctx.subagents` | - | The globally named control tools over continuable background subagents: provider-bound `tool-subagent` instances register distinct delegation tools, while this package registers `send_message` and `interrupt_agent` once, plus `list_agents` from its separately loaded `/list-agents` plugin (whose catalog rows use the sessionProjections and live Agent registries). |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`, `job_list`, `job_output` | `ctx.tools`, `ctx.jobs`, `ctx.systemPrompt` | `tool/call`, `tool/result`, `user/message via agent.inject() for background completion notices` | - | The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`. |
+| `@deepseek-ai/dsh-experimental-tool-findme-compute` | `findme_compute_create_integration`, `findme_compute_discover_models`, `findme_compute_list_adapters`, `findme_compute_list_catalog`, `findme_compute_verify_integration` | `ctx.tools`, `FindMe AI Hub Admin API at execution time` | `tool/call`, `tool/result`, `AI Hub compute registry and audit through the Admin API` | - | Five opt-in FindMe AI Hub registry tools. Provider credentials are deliberately absent from every schema and use a separate structured desktop form-to-API path. |
 | `@deepseek-ai/dsh-experimental-tool-agent-team` | `interrupt_agent`, `list_agents`, `send_message`, `spawn_teammate`, `team_task_create`, `team_task_get`, `team_task_list`, `team_task_update`, `wait_agent` | `ctx.tools`, `ctx.systemPrompt`, `ctx.agentTeams`, `an exact live Team member Agent` | `tool/call`, `team/member`, `team/message/queued`, `team/message/delivered`, `team/task`, `tool/result` | - | All nine tools are scoped to implicit Team Leads and durable teammates. The shipped dsh-base bundle keeps the package disabled; the documented Agent Teams profile patch enables it while disabling the legacy continuable-child control names. |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`, `owning Agent session` | `tool/call`, `todo/write`, `tool/result` | - | todo_write is session-owned state; UIs render the latest todo/write event as a checklist. `allowParallelInProgress` is required with no default, so the catalog states its choice: `true`, whose description invites several `in_progress` items. A deployment choosing `false` receives the same tool with a description asking for exactly one active task. |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`, `ctx.workflowEngine`, `ctx.systemPrompt`, `a calling Agent (exec.agent parents the script children)` | `tool/call`, `tool/result` | - | - |
@@ -1737,6 +1738,188 @@ Read a background job. Stream jobs return only output since the previous read; f
 Source: [`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
 
 The kind-agnostic background-job controller: background bash commands, PTY sends, and subagents are read, listed, and killed through the same three tools. Loading the plugin attaches the controller that arms producers' `ctx.jobs.start()`.
+
+<a id="deepseek-aidsh-experimental-tool-findme-compute"></a>
+
+## `@deepseek-ai/dsh-experimental-tool-findme-compute`
+
+### `findme_compute_create_integration`
+
+Create a non-secret Provider and primary Endpoint draft. Never pass credentials or API keys.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_key": {
+      "type": "string",
+      "description": "Stable lowercase provider key."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Administrator-facing provider name."
+    },
+    "adapter_key": {
+      "type": "string",
+      "description": "Key returned by findme_compute_list_adapters."
+    },
+    "non_secret_config": {
+      "type": "object",
+      "description": "Provider metadata with no credential fields.",
+      "additionalProperties": true
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "base_url": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "timeout_ms": {
+          "type": "number"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "name",
+        "base_url",
+        "protocol"
+      ]
+    }
+  },
+  "required": [
+    "provider_key",
+    "display_name",
+    "adapter_key",
+    "endpoint"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_discover_models`
+
+Discover Provider Models through a verified integration and update Compute Targets idempotently.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Provider UUID returned when the draft was created."
+    },
+    "refresh": {
+      "type": "boolean",
+      "description": "Whether the API should refresh the upstream model list."
+    }
+  },
+  "required": [
+    "provider_id",
+    "refresh"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_list_adapters`
+
+List server-installed compute adapters, optionally filtered by modality.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "modality": {
+      "type": "string",
+      "description": "Optional modality such as TEXT, IMAGE, VIDEO, or AUDIO."
+    }
+  }
+}
+```
+
+Source: [`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_list_catalog`
+
+Read the normalized Compute Target catalog with optional provider, modality, operation, and status filters.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string"
+    },
+    "modality": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "cursor": {
+      "type": "string"
+    },
+    "limit": {
+      "type": "number",
+      "description": "Page size from 1 to 200."
+    }
+  }
+}
+```
+
+Source: [`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_verify_integration`
+
+Ask the AI Hub API runtime to verify one integration from the server environment.
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Provider UUID returned when the draft was created."
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "AUTH_ONLY",
+        "AUTH_AND_MINIMAL_CALL"
+      ]
+    }
+  },
+  "required": [
+    "provider_id",
+    "mode"
+  ]
+}
+```
+
+Source: [`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+Five opt-in FindMe AI Hub registry tools. Provider credentials are deliberately absent from every schema and use a separate structured desktop form-to-API path.
 
 <a id="deepseek-aidsh-experimental-tool-agent-team"></a>
 

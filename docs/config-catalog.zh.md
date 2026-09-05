@@ -690,6 +690,26 @@ export interface Config {
 
 来源：[`packages/experimental/tool-agent-team/src/index.ts:17`](../packages/experimental/tool-agent-team/src/index.ts)
 
+<a id="deepseek-aidsh-experimental-tool-findme-compute"></a>
+
+## `@deepseek-ai/dsh-experimental-tool-findme-compute`
+
+需要：`tools`
+
+```ts config-catalog
+/** Host configuration for the FindMe AI Hub Admin API. */
+export interface Config {
+  /** Base URL of the independently running AI Hub API. */
+  apiBaseUrl: string
+  /** Administrator bearer token; host-only and never projected into a tool schema. */
+  adminToken: string
+  /** Maximum duration of one Admin API request in milliseconds. */
+  requestTimeoutMs: number
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts:16`](../packages/experimental/tool-findme-compute/src/index.ts)
+
 <a id="deepseek-aidsh-file-reference-local"></a>
 
 ## `@deepseek-ai/dsh-file-reference-local`

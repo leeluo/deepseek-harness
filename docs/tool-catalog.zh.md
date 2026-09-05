@@ -40,6 +40,7 @@
 | `@deepseek-ai/dsh-tool-subagent` | `list_subagent_models`、`subagent` | `ctx.tools`、`ctx.subagents`、`ctx.systemPrompt`、`用于模型发现和所选路由校验的 ctx.llm` | `tool/call`、`tool/result`、`child session events through the chosen provider` | `subagent`、`subagent_fork` | 注册的委派工具名称取决于加载时 `toolName` 配置（默认为 `subagent`）；上述默认 schema 关闭模型选择，而发现 schema 则展示为已启用 Session 中可用的固定配套工具。Web preset 会在每个新顶层 Session 创建时读取插件页偏好，并为其子 Session 保留该决定；`subagent_fork` 始终使用固定路由。每个实例通过 `modelSelectionSettings`、`backgroundMode` 与 `enableRunInBackground` 独立控制是否读取模型选择设置及其后台行为。 |
 | `@deepseek-ai/dsh-tool-subagent-control` | `interrupt_agent`、`list_agents`、`send_message` | `ctx.tools`、`ctx.subagents`、`ctx.agents and ctx.sessionProjections (list_agents only)` | `tool/call`、`tool/result`、`child session events through ctx.subagents` | - | 这些是控制可继续后台 subagent 的全局命名工具：绑定提供方的 `tool-subagent` 实例注册不同的委派工具；本包注册一次 `send_message` 和 `interrupt_agent`，另由 `list_agents` 通过单独加载的 `/list-agents` 插件提供，其目录行使用 sessionProjections 和实时 Agent 注册表。 |
 | `@deepseek-ai/dsh-tool-jobs` | `job_kill`、`job_list`、`job_output` | `ctx.tools`、`ctx.jobs`、`ctx.systemPrompt` | `tool/call`、`tool/result`、`user/message via agent.inject() for background completion notices` | - | 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。 |
+| `@deepseek-ai/dsh-experimental-tool-findme-compute` | `findme_compute_create_integration`、`findme_compute_discover_models`、`findme_compute_list_adapters`、`findme_compute_list_catalog`、`findme_compute_verify_integration` | `ctx.tools`、`FindMe AI Hub Admin API at execution time` | `tool/call`、`tool/result`、`AI Hub compute registry and audit through the Admin API` | - | 5 个可选的 FindMe AI Hub 注册表工具。所有 schema 都明确不包含 Provider 凭据，凭据通过独立的结构化桌面表单到 API 路径提交。 |
 | `@deepseek-ai/dsh-experimental-tool-agent-team` | `interrupt_agent`、`list_agents`、`send_message`、`spawn_teammate`、`team_task_create`、`team_task_get`、`team_task_list`、`team_task_update`、`wait_agent` | `ctx.tools`、`ctx.systemPrompt`、`ctx.agentTeams`、`an exact live Team member Agent` | `tool/call`、`team/member`、`team/message/queued`、`team/message/delivered`、`team/task`、`tool/result` | - | 这 9 个工具限定于隐式 Team Lead 与持久 teammate 作用域。随产品发布的 dsh-base bundle 默认禁用该包；文档中的 Agent Teams profile patch 会启用它，并禁用旧 continuable child 的同名控制工具。 |
 | `@deepseek-ai/dsh-tool-todo` | `todo_write` | `ctx.tools`、`owning Agent session` | `tool/call`、`todo/write`、`tool/result` | - | todo_write 是会话所有的状态；UI 将最新的 todo/write 事件渲染为检查清单。`allowParallelInProgress` 是没有默认值的必填项，因此本目录明确选择 `true`，对应描述允许同时存在多个 `in_progress` 项。选择 `false` 的部署会获得同一工具，但描述会要求只能有 1 个活动任务。 |
 | `@deepseek-ai/dsh-tool-workflow` | `workflow` | `ctx.tools`、`ctx.workflowEngine`、`ctx.systemPrompt`、`a calling Agent (exec.agent parents the script children)` | `tool/call`、`tool/result` | - | - |
@@ -1743,6 +1744,188 @@ lsp 工具将提供方选择和语言服务器子进程置于 ctx.lsp 之后，�
 来源：[`packages/jobs/tool-jobs/src/index.ts`](../packages/jobs/tool-jobs/src/index.ts)
 
 与任务种类无关的后台任务控制器：后台 bash 命令、PTY 发送和 subagent 都通过相同的 3 个工具读取、列出和终止。加载该插件会挂接控制器，从而启用生产方的 `ctx.jobs.start()`。
+
+<a id="deepseek-aidsh-experimental-tool-findme-compute"></a>
+
+## `@deepseek-ai/dsh-experimental-tool-findme-compute`
+
+### `findme_compute_create_integration`
+
+创建不含敏感信息的 Provider 和主 Endpoint 草稿。绝不传入凭据或 API Key。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_key": {
+      "type": "string",
+      "description": "Stable lowercase provider key."
+    },
+    "display_name": {
+      "type": "string",
+      "description": "Administrator-facing provider name."
+    },
+    "adapter_key": {
+      "type": "string",
+      "description": "Key returned by findme_compute_list_adapters."
+    },
+    "non_secret_config": {
+      "type": "object",
+      "description": "Provider metadata with no credential fields.",
+      "additionalProperties": true
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "base_url": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string"
+        },
+        "region": {
+          "type": "string"
+        },
+        "timeout_ms": {
+          "type": "number"
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "config": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "required": [
+        "name",
+        "base_url",
+        "protocol"
+      ]
+    }
+  },
+  "required": [
+    "provider_key",
+    "display_name",
+    "adapter_key",
+    "endpoint"
+  ]
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_discover_models`
+
+通过已验证的接入发现 Provider Model，并幂等更新 Compute Target。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Provider UUID returned when the draft was created."
+    },
+    "refresh": {
+      "type": "boolean",
+      "description": "Whether the API should refresh the upstream model list."
+    }
+  },
+  "required": [
+    "provider_id",
+    "refresh"
+  ]
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_list_adapters`
+
+列出服务器已安装的算力 Adapter，可选按模态筛选。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "modality": {
+      "type": "string",
+      "description": "Optional modality such as TEXT, IMAGE, VIDEO, or AUDIO."
+    }
+  }
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_list_catalog`
+
+读取归一化的 Compute Target 目录，可选按 Provider、模态、操作和状态筛选。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string"
+    },
+    "modality": {
+      "type": "string"
+    },
+    "operation": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string"
+    },
+    "cursor": {
+      "type": "string"
+    },
+    "limit": {
+      "type": "number",
+      "description": "Page size from 1 to 200."
+    }
+  }
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+### `findme_compute_verify_integration`
+
+请求 AI Hub API Runtime 在服务器环境中验证一个算力接入。
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "provider_id": {
+      "type": "string",
+      "description": "Provider UUID returned when the draft was created."
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "AUTH_ONLY",
+        "AUTH_AND_MINIMAL_CALL"
+      ]
+    }
+  },
+  "required": [
+    "provider_id",
+    "mode"
+  ]
+}
+```
+
+来源：[`packages/experimental/tool-findme-compute/src/index.ts`](../packages/experimental/tool-findme-compute/src/index.ts)
+
+5 个可选的 FindMe AI Hub 注册表工具。所有 schema 都明确不包含 Provider 凭据，凭据通过独立的结构化桌面表单到 API 路径提交。
 
 <a id="deepseek-aidsh-experimental-tool-agent-team"></a>
 
